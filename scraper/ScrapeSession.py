@@ -44,7 +44,6 @@ logging.basicConfig(
 
 class ScrapeSession(object):
     _BASE_URL = "https://www.blablacar.co.uk"
-    # USER_AGENT = "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:76.0) Gecko/20100101 Firefox/76.0"
     USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36 OPR/76.0.4017.107"
     def __init__(self):
         self._logger = logging.getLogger(self.__class__.__name__)
@@ -85,7 +84,7 @@ class ScrapeSession(object):
                 break
             except Exception as e:
                 print('ERROR AT SETTING SESSION:', e)
-                time.sleep(30)
+                time.sleep(random.uniform(29, 31))
                 continue
         
     def scrape(self, trip_id):
@@ -107,7 +106,8 @@ class ScrapeSession(object):
         
         result = {
             "ride": {},
-            "rating": []
+            "rating": [],
+            "status": None
         }
 
         data = {
@@ -126,15 +126,15 @@ class ScrapeSession(object):
                 # return self.session
                 # break
             
-                if i >= 4:
+                if i >= 3:
                     self._logger.info('SKIPPED REQUEST')
-                    return {'ride': False}
+                    return {'status': False}
                     break
                 
                 time.sleep(random.uniform(4,6))
                 self._logger.info('REQUESTING INFO')
                 
-                repeat = None
+                repeat = False
                 
                 response = self.session.get(
                     "{}/trip".format(self._BASE_URL),
@@ -148,7 +148,7 @@ class ScrapeSession(object):
                     if i >= 2:
                         self._logger.info('SKIPPED REQUEST')
                         time.sleep(random.uniform(15,20))
-                        return {'ride': False}
+                        return {'status': False}
                         break
                     continue
                 
@@ -157,7 +157,7 @@ class ScrapeSession(object):
                     time.sleep(random.uniform(5, 40))
                     if i >= 2:
                         self._logger.info('SKIPPED REQUEST')
-                        return {'ride': False}
+                        return {'status': False}
                         break
                     continue
                     
@@ -210,7 +210,7 @@ class ScrapeSession(object):
                     if response.status_code == 404: # Not an exception
                         self._logger.info(f'TRIP DELETED: {response.reason}')
                         time.sleep(random.uniform(2,3))
-                        return {'ride': False}
+                        return {'status': 'Ride deleted'}
                         break
             
                     if not response.ok:
@@ -260,8 +260,9 @@ class ScrapeSession(object):
                             self._logger.info("NO RATINGS")
                             result['rating'] = ['No Ratings']
                     
-                    if repeat == None: # End loop
+                    if not repeat: # End loop
                         self._logger.info('<<<FINISHED SCRAPE>>>')
+                        result['status'] = True
                         break
                 
             except Exception as e:

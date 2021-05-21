@@ -23,10 +23,6 @@ os.chdir(scriptsdir / 'scraper')
 from API_funs import getTrips
 
 #%%
-pd.set_option("display.max_columns", 150)
-pd.set_option("display.max_rows", 50)
-pd.set_option("display.max_colwidth", None)
-pd.options.display.float_format = "{:.2f}".format
 
 today = date.today()
 
@@ -54,7 +50,7 @@ coordinate_mapper = (
     .set_index('DeptNum')
 )
 #%%
-majors_df = (
+coordinate_mapper = (
     coordinate_mapper
     .loc[
         (coordinate_mapper.Commune == 'Paris') |
@@ -75,6 +71,8 @@ majors_df = (
 )
 
 #%%
+majors_df = coordinate_mapper.copy()
+
 majors_df['results'] = majors_df.apply(
     lambda row: getTrips(
         FC=row,

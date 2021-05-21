@@ -37,36 +37,51 @@ latest_path = max(list_of_paths, key=lambda p: p.stat().st_ctime)
 
 API_results = pd.read_csv(latest_path)
 
-API_results.dropna(subset=['trip_id'], inplace=True)
-
-# API_results = API_results
+API_results = (
+    API_results
+    .dropna(subset=['trip_id'])
+    .drop_duplicates(subset=['trip_id'])
+    ['trip_id'].to_list()
+)
 
 file_to_operate = uniquifier(str(scrapedir / 'scrape_dumps' / f'{today}_trips.txt'))
 
 #%% Call scraper from ScrapeSession module, dump JSON results
 trip_dict = {}
+loop_list = []
 
-for i, row in API_results.iterrows():
-    
-    Scraper = ScrapeSession()
-    
-    trip_dict[row['trip_id']] = Scraper.scrape(trip_id=row['trip_id'])
-    trip_dict[row['trip_id']]['idx'] = str(i)
-    
-    # ha = list(trip_dict.items())[0][1]
-    if i % 25 == 0:
-        try:
-            with open(file_to_operate, 'w') as f:
-                f.write(json.dumps([trip_dict]))
-        except:
-            continue
+i = 0
 
-    time.sleep(random.uniform(10,15))
+while API_results:
+    
+    for trip in API_results:
+        i += 1
+        Scraper = ScrapeSession()
+        
+        rj_trip = Scraper.scrape(trip_id=trip)
+        
+        loop_list.append(tuple([trip, rj_trip['status']]))
+        
+        if rj_trip['status']:
+            trip_dict[trip] = rj_trip
+        
+        if i % 25 == 0:
+            try:
+                with open(file_to_operate, 'w') as f:
+                    f.write(json.dumps([trip_dict]))
+                print('Saved at', i, 'over', len(API_results))
+            except Exception as e:
+                print('Error saving:', e)
+                continue
+    
+        time.sleep(random.uniform(5,8))
+        
+    API_results = [x[0] for x in loop_list if not x[1]]
 
 
 #%% Parse JSON data
-
-with open(file_to_operate.replace('_1.txt', '.txt')) as f:
+# .replace('_1.txt', '.txt')
+with open(file_to_operate) as f:
        data = json.loads(f.read())
        
 trip_df = pd.DataFrame.from_dict(data[0], orient='index')
@@ -115,6 +130,9 @@ for i, row in trip_df.iterrows():
         or col.startswith('seats_')
         ]
     
-output_df = output_df[['id', 'comment', 'flags'] + cols]
+output_df = (
+    output_df[['id', 'comment', 'flags'] + cols]
+    .rename(columns={'id': 'trip_id'})
+)
 
 output_df.to_excel(outdir / 'scraper' / 'parsed_trips' / f'{today}_parsed_trip_results.xlsx')
