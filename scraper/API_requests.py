@@ -14,11 +14,11 @@ import pandas as pd
 
 #%%
 bbcardir = Path(os.environ["BLABLACAR_PATH"])
-notebookdir = bbcardir / 'Notebooks'
+scriptsdir = bbcardir / 'git_scripts'
 datadir = bbcardir / 'data'
 outdir = bbcardir / 'output'
 
-os.chdir(notebookdir / 'scraper')
+os.chdir(scriptsdir / 'scraper')
 
 from API_funs import getTrips
 
@@ -30,7 +30,7 @@ pd.options.display.float_format = "{:.2f}".format
 
 today = date.today()
 
-log_dump = notebookdir / 'scraper' / 'log' / f'{today}_JSON.txt'
+log_dump = scriptsdir / 'scraper' / 'log' / f'{today}_JSON.txt'
 
 #%%
 coordinate_mapper = pd.read_csv(

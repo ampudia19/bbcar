@@ -11,12 +11,12 @@ from datetime import date
 
 #%%
 bbcardir = Path(os.environ['BLABLACAR_PATH'])
-notebookdir = bbcardir / 'Notebooks'
+scriptsdir = bbcardir / 'git_scripts'
 datadir = bbcardir / 'data'
 outdir = bbcardir / 'output'
 scrapedir = outdir / 'scraper'
 
-os.chdir(notebookdir / 'scraper')
+os.chdir(scriptsdir / 'scraper')
 today = date.today()
 
 from ScrapeSession import ScrapeSession
