@@ -46,6 +46,7 @@ def parser(file):
     
     t_list = []
     for i, row in trip_df.iterrows():
+        print(i)
         try:
             rating_info = [item for sublist in row['rating'] for item in sublist]
         
@@ -65,20 +66,21 @@ def parser(file):
                 
         except Exception:
             # Skips deleted trips
-            continue
+            pass
         
-        output_df = pd.concat(t_list)
-        
-        cols = [
-            col
-            for col in output_df.columns 
-            if col.startswith('passengers') 
-            or col.startswith('driver_')
-            or col.startswith('vehicle_')
-            or col.startswith('seats_')
-            or col.startswith('ratings')
-            ]
-        
+    output_df = pd.concat(t_list)
+    
+    print('made it')
+    cols = [
+        col
+        for col in output_df.columns 
+        if col.startswith('passengers') 
+        or col.startswith('driver_')
+        or col.startswith('vehicle_')
+        or col.startswith('seats_')
+        or col.startswith('ratings')
+        ]
+    
     output_df = (
         output_df[['id', 'comment', 'flags'] + cols]
         .rename(columns={'id': 'trip_id'})
@@ -147,4 +149,4 @@ with open(file_to_operate, 'w') as f:
 
 output_df = parser(file_to_operate)
 
-output_df.to_pickle(outdir / 'scraper' / 'parsed_trips' / f'{today}_parsed_trip_results.pkl')
+output_df.to_pickle(outdir / 'parsed_trips' / f'{today}_parsed_trip_results.pkl')
