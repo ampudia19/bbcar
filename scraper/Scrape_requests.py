@@ -13,7 +13,7 @@ from concurrent.futures import ThreadPoolExecutor, ALL_COMPLETED, wait, as_compl
 bbcardir = Path(os.environ['BLABLACAR_PATH'])
 scriptsdir = bbcardir / 'git_scripts'
 datadir = bbcardir / 'data'
-outdir = bbcardir / 'output'
+outdir = datadir / 'output'
 scrapedir = outdir / 'scraper'
 
 os.chdir(scriptsdir / 'scraper')

@@ -16,7 +16,7 @@ import pandas as pd
 bbcardir = Path(os.environ["BLABLACAR_PATH"])
 scriptsdir = bbcardir / 'git_scripts'
 datadir = bbcardir / 'data'
-outdir = bbcardir / 'output'
+outdir = datadir / 'output'
 
 os.chdir(scriptsdir / 'scraper')
 
@@ -50,7 +50,7 @@ coordinate_mapper = (
     .set_index('DeptNum')
 )
 #%%
-coordinate_mapper = (
+majors_df = (
     coordinate_mapper
     .loc[
         (coordinate_mapper.Commune == 'Paris') |
@@ -71,7 +71,7 @@ coordinate_mapper = (
 )
 
 #%%
-majors_df = coordinate_mapper.copy()
+majors_df = majors_df.copy()
 
 majors_df['results'] = majors_df.apply(
     lambda row: getTrips(
