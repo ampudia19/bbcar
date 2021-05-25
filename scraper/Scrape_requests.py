@@ -1,25 +1,19 @@
 import os
-import time
 import json
-import random
 from pathlib import Path
 import pandas as pd
 from datetime import date
 
-# from multiprocessing.dummy import Pool as ThreadPool
-import uuid
 from concurrent.futures import ThreadPoolExecutor, ALL_COMPLETED, wait, as_completed
-#%%
+#%% Paths
 bbcardir = Path(os.environ['BLABLACAR_PATH'])
 scriptsdir = bbcardir / 'git_scripts'
 datadir = bbcardir / 'data'
-outdir = datadir / 'output'
-scrapedir = outdir / 'scraper'
-
+outdir = datadir / 'scraper' / 'output'
 os.chdir(scriptsdir / 'scraper')
 today = date.today()
 
-#%%
+#%% Funs
 def uniquifier(path):
     filename, extension = os.path.splitext(path)
     counter = 1
@@ -94,8 +88,8 @@ def parser(file):
     
     return output_df
 
-#%%
-list_of_paths = scrapedir.glob('*.csv')
+#%% Input list of trips to read and file to save on
+list_of_paths = outdir.glob('*.csv')
 latest_path = max(list_of_paths, key=lambda p: p.stat().st_ctime) 
 
 API_results = pd.read_csv(latest_path)
@@ -107,7 +101,7 @@ API_results = (
     ['trip_id'].to_list()
 )
 
-file_to_operate = uniquifier(str(scrapedir / 'scrape_dumps' / f'{today}_trips.txt'))
+file_to_operate = uniquifier(str(datadir / 'scraper' / '_scrape_dumps' / f'{today}_trips.txt'))
 
 #%% Call scraper from ScrapeSession module, dump JSON results
 from ScrapeSession import ScrapeSession

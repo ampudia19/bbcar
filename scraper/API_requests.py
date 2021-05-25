@@ -16,7 +16,7 @@ import pandas as pd
 bbcardir = Path(os.environ["BLABLACAR_PATH"])
 scriptsdir = bbcardir / 'git_scripts'
 datadir = bbcardir / 'data'
-outdir = datadir / 'output'
+outdir = datadir / 'scraper' / 'output'
 
 os.chdir(scriptsdir / 'scraper')
 
@@ -26,7 +26,7 @@ from API_funs import getTrips
 
 today = date.today()
 
-log_dump = scriptsdir / 'scraper' / 'log' / f'{today}_JSON.txt'
+log_dump = datadir / 'scraper' / '_API_dumps' / f'{today}_JSON.txt'
 
 #%%
 coordinate_mapper = pd.read_csv(
@@ -136,4 +136,4 @@ now = datetime.now()
 
 dt_string = now.strftime("%Y%m%d_%H")
 
-results.to_csv(outdir / 'scraper' / f'{dt_string}h_trips.csv')
+results.to_csv(outdir / f'{dt_string}h_trips.csv')

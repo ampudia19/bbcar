@@ -1,13 +1,8 @@
 import time
-import sys
-import json
 import logging
 import requests
 from datetime import date
 import random
-# from fake_useragent import UserAgent
-
-from pathlib import Path
 
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
@@ -19,7 +14,7 @@ MESSAGE_INFO = "%(asctime)s %(trip)s ----- %(message)s"
 DATEFMT = "%Y/%m/%d %H:%M"
 
 file_handler = logging.FileHandler(
-    filename=f'./log/trip/{today}_scraper.log', 
+    filename=f'./log/{today}_scraper.log', 
     mode='a'
 )
 
@@ -90,14 +85,14 @@ class ScrapeSession(object):
             'https': proxy,
         }
         
-        skip = False
+        self.skip = False
         while True:
             try:
                 self.session.get(self._BASE_URL, timeout=10)
                 break
             except Exception as e:
                 print('ERROR AT SETTING SESSION:', e)
-                skip = True
+                self.skip = True
                 break
         
     def scrape(self, trip_id):
@@ -139,8 +134,7 @@ class ScrapeSession(object):
                     result[trip_id]['status'] = False
                     break
                 
-                # Define loop break controls
-                repeat = False
+                # Loop iteration
                 i+=1
                 
                 self._logger.info('CREATE SESSION')
@@ -151,7 +145,7 @@ class ScrapeSession(object):
                     result[trip_id]['status'] = False
                     break
                 
-                time.sleep(random.uniform(2,4))
+                time.sleep(random.uniform(4,6))
 
         #-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+##-+#-+#-+#-+
                 self._logger.info('REQUESTING BASIC INFO')
@@ -169,7 +163,7 @@ class ScrapeSession(object):
                     # If repeated, break code; else return to while loop
                     if i >= 2:
                         self._logger.info('SKIPPED REQUEST')
-                        time.sleep(random.uniform(15,20))
+                        time.sleep(random.uniform(4,6))
                         result[trip_id]['status'] = False
                         break
                     continue
@@ -186,7 +180,7 @@ class ScrapeSession(object):
                         break
                     continue
                     
-                time.sleep(random.uniform(4,6))
+                time.sleep(random.uniform(8,10))
                 
     #-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+##-+#-+#-+#-+
                 self._logger.info('REQUESTING TRIP DETAILS')
@@ -293,7 +287,7 @@ class ScrapeSession(object):
             # Capture any other exceptions; return control to while loop
             except Exception as e:
                 self._logger.info("REQUEST ERROR: {}".format(e))
-                time.sleep(random.uniform(5,8))
+                time.sleep(random.uniform(10,12))
                 continue
         
         return result
