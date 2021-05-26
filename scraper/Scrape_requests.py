@@ -1,26 +1,19 @@
 import os
-import time
 import json
-# import requests
-# import csv  
-import random
 from pathlib import Path
 import pandas as pd
 from datetime import date
-# import pickle
 
-#%%
+from concurrent.futures import ThreadPoolExecutor, ALL_COMPLETED, wait, as_completed
+#%% Paths
 bbcardir = Path(os.environ['BLABLACAR_PATH'])
 scriptsdir = bbcardir / 'git_scripts'
 datadir = bbcardir / 'data'
-outdir = bbcardir / 'output'
-scrapedir = outdir / 'scraper'
-
+outdir = datadir / 'scraper' / 'output'
 os.chdir(scriptsdir / 'scraper')
 today = date.today()
 
-from ScrapeSession import ScrapeSession
-#%%
+#%% Funs
 def uniquifier(path):
     filename, extension = os.path.splitext(path)
     counter = 1
@@ -31,8 +24,74 @@ def uniquifier(path):
 
     return path
 
-#%%
-list_of_paths = scrapedir.glob('*.csv')
+def parser(file):
+    '''
+    Parses nested dictionaries into a dataframe, saves pickle.
+
+    Parameters
+    ----------
+    file : dumped json list
+
+    Returns
+    -------
+    output_df : trip dataframe
+
+    '''
+    with open(file) as f:
+        data = json.loads(f.read())
+           
+    data = {k: v for x in data for k in x.keys() for v in x.values() if v['status']}
+           
+    trip_df = pd.DataFrame.from_dict(data, orient='index')
+    
+    t_list = []
+    for i, row in trip_df.iterrows():
+        print(i)
+        try:
+            rating_info = [item for sublist in row['rating'] for item in sublist]
+        
+            ride_df = pd.DataFrame([row['ride']], columns=row['ride'].keys())
+            
+            ride_df['ratings'] = [rating_info]
+            
+            ride_df = (
+                ride_df
+                .join(pd.json_normalize(ride_df['driver']).add_prefix('driver_'))
+                .join(pd.json_normalize(ride_df['multimodal_id']))
+                .join(pd.json_normalize(ride_df['vehicle']).add_prefix('vehicle_'))
+                .join(pd.json_normalize(ride_df['seats']).add_prefix('seats_'))
+            )
+        
+            t_list.append(ride_df)
+                
+        except Exception:
+            # Skips deleted trips
+            pass
+        
+    output_df = pd.concat(t_list)
+    
+    print('made it')
+    cols = [
+        col
+        for col in output_df.columns 
+        if col.startswith('passengers') 
+        or col.startswith('driver_')
+        or col.startswith('vehicle_')
+        or col.startswith('seats_')
+        or col.startswith('ratings')
+        ]
+    
+    output_df = (
+        output_df[['id', 'comment', 'flags'] + cols]
+        .rename(columns={'id': 'trip_id'})
+    )
+    
+    output_df.reset_index(drop=True, inplace=True)
+    
+    return output_df
+
+#%% Input list of trips to read and file to save on
+list_of_paths = outdir.glob('*.csv')
 latest_path = max(list_of_paths, key=lambda p: p.stat().st_ctime) 
 
 API_results = pd.read_csv(latest_path)
@@ -44,95 +103,50 @@ API_results = (
     ['trip_id'].to_list()
 )
 
-file_to_operate = uniquifier(str(scrapedir / 'scrape_dumps' / f'{today}_trips.txt'))
+file_to_operate = uniquifier(str(datadir / 'scraper' / '_scrape_dumps' / f'{today}_trips.txt'))
 
 #%% Call scraper from ScrapeSession module, dump JSON results
-trip_dict = {}
-loop_list = []
+from ScrapeSession import ScrapeSession
 
-i = 0
+trips_dict = {}
+json_dump = []
 
 while API_results:
+    try:
+        threads = []
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            for trip in API_results:
+                threads.append(executor.submit(ScrapeSession().scrape, trip))
+            for trip in as_completed(threads):
+                json_dump.append(trip.result())
+                
+            wait(threads, timeout=7200, return_when=ALL_COMPLETED)
+            # for trip in as_completed(threads)
+            #     loop_list.append(tuple([trip, rj_trip['status']]))
+                
+            #     if rj_trip['status']:
+            #         trip_dict[trip] = rj_trip
+            
+                
+        merged_results = [x for i in threads for x in i.result().items()]
+        merged_results = dict((x, y) for x, y in merged_results)
+        
+        trips_dict.update(merged_results)
+     
+        API_results = [x for x in trips_dict if not trips_dict[x]['status']]
     
-    for trip in API_results:
-        i += 1
-        Scraper = ScrapeSession()
-        
-        rj_trip = Scraper.scrape(trip_id=trip)
-        
-        loop_list.append(tuple([trip, rj_trip['status']]))
-        
-        if rj_trip['status']:
-            trip_dict[trip] = rj_trip
-        
-        if i % 25 == 0:
-            try:
-                with open(file_to_operate, 'w') as f:
-                    f.write(json.dumps([trip_dict]))
-                print('Saved at', i, 'over', len(API_results))
-            except Exception as e:
-                print('Error saving:', e)
-                continue
-    
-        time.sleep(random.uniform(5,8))
-        
-    API_results = [x[0] for x in loop_list if not x[1]]
-
+    except Exception as e:
+        print('########### ERROR THAT TERMINATES WHILE LOOP', e)
+        # If crash, save results
+        with open(file_to_operate, 'w') as f:
+            f.write(json.dumps(json_dump))
+            
+# Dump results if trip id's are exhausted
+with open(file_to_operate, 'w') as f:
+            f.write(json.dumps(json_dump))        
 
 #%% Parse JSON data
-# .replace('_1.txt', '.txt')
-with open(file_to_operate) as f:
-       data = json.loads(f.read())
-       
-trip_df = pd.DataFrame.from_dict(data[0], orient='index')
 
-t_list = []
-for i, row in trip_df.iterrows():
-    try:
-        rating_info = [item for sublist in row['rating'] for item in sublist]
-    
-        ride_df = (
-            pd.DataFrame([row['ride']], columns=row['ride'].keys())
-            # 
-        )
-        
-        ride_df['ratings'] = [rating_info]
-        
-        ride_df = (
-            ride_df
-            .explode('passengers')
-            .join(pd.json_normalize(ride_df['driver']).add_prefix('driver_'))
-            .join(pd.json_normalize(ride_df['multimodal_id']))
-            .join(pd.json_normalize(ride_df['vehicle']).add_prefix('vehicle_'))
-            .join(pd.json_normalize(ride_df['seats']).add_prefix('seats_'))
-        )
-        
-        ride_df = ride_df.reset_index(drop=True)
-    
-        try: # Captures passenger info, if any passengers
-            ride_df = ride_df.join(pd.json_normalize(ride_df['passengers']).add_prefix('passenger_'))
-        except:
-            pass
-    
-        t_list.append(ride_df)
-            
-    except Exception:
-        continue
-    
-    output_df = pd.concat(t_list)
-    
-    cols = [
-        col
-        for col in output_df.columns 
-        if col.startswith('passenger_') 
-        or col.startswith('driver_')
-        or col.startswith('vehicle_')
-        or col.startswith('seats_')
-        ]
-    
-output_df = (
-    output_df[['id', 'comment', 'flags'] + cols]
-    .rename(columns={'id': 'trip_id'})
-)
+output_df = parser(file_to_operate)
 
-output_df.to_excel(outdir / 'scraper' / 'parsed_trips' / f'{today}_parsed_trip_results.xlsx')
+output_df.to_pickle(outdir / 'parsed_trips' / f'{today}_parsed_trip_results.pkl')
