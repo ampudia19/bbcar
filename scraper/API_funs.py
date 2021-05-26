@@ -5,13 +5,15 @@ import random
 import json
 from tqdm import tqdm
 
-from constants import API_KEY, API_KEY2, API_KEY3, API_KEY4
+from constants import API_KEY, API_KEY2, API_KEY3, API_KEY4, API_KEY5, API_KEY6
 
 API_DICT = {
     'main': API_KEY,
     'aux1': API_KEY2,
     'aux2': API_KEY3,
-    'aux3': API_KEY4
+    'aux3': API_KEY4,
+    'aux4': API_KEY5,
+    'aux6': API_KEY6
 }
 
 #%%
@@ -47,14 +49,14 @@ def rotate(d):
     return d
 
 
-def getTrips(FC, SD, dataset, log_dest):
+def getTrips(origin, startdate, dataset, log_dest):
     '''
     Iterates over the BlaBlaCar trip endpoints.
     Checks for multiple page results, rotates keys and returns
     indexed results by department.
 
-    - FC: From City, takes city row
-    - SD: Starting Date, takes a datetime
+    - origin: takes city row
+    - startdate: takes a datetime
     - dataset: Frame containing all possible destinations
     - log_dest: Takes a path to dump json results
     
@@ -66,9 +68,11 @@ def getTrips(FC, SD, dataset, log_dest):
     trips = []
 
     local_dict = API_DICT
-
-    for i, row in tqdm(dataset[~(dataset.index == FC.index[0])].iterrows()):
-
+    
+    iterator = tqdm(dataset[~(dataset.index == origin.index[0])].iterrows())
+    for i, row in iterator:
+        iterator.set_description(f'{origin.Commune}')
+        
         local_dict = rotate(local_dict)
         KEY = local_dict['main']
 
@@ -85,9 +89,9 @@ def getTrips(FC, SD, dataset, log_dest):
         QS_BASE = {
             "key": KEY,
             "currency": CUR,
-            "from_coordinate": FC['coord'],
+            "from_coordinate": origin['coord'],
             "to_coordinate": row['coord'],
-            "start_local_date": SD
+            "start_local_date": startdate
         }
 
         querystring = dict(
@@ -145,10 +149,10 @@ def getTrips(FC, SD, dataset, log_dest):
                     random.uniform(1, 3)
                 )
     
-            except ValueError as e:  # includes simplejson.decoder.JSONDecodeError
+            except ValueError:  # includes simplejson.decoder.JSONDecodeError
                 print(f'Decoding JSON has failed for trips from {row.Commune}')
                 with open(log_dest, 'a') as f:
-                    f.write(e)
+                    f.write('ValueError')
                     
                 trips.append(tuple([i, None]))
     
@@ -159,7 +163,5 @@ def getTrips(FC, SD, dataset, log_dest):
             except ConnectionError as e:
                 print(e)
                 pass
-
-    # print(f'Scraped trips from {FC.Commune}')
 
     return trips

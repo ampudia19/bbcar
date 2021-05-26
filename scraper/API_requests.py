@@ -49,6 +49,8 @@ coordinate_mapper = (
     )
     .set_index('DeptNum')
 )
+    
+coordinate_mapper = coordinate_mapper
 #%%
 majors_df = (
     coordinate_mapper
@@ -60,29 +62,55 @@ majors_df = (
         # (coordinate_mapper.Commune == 'Nimes') |
         (coordinate_mapper.Commune == 'Nice') |
         (coordinate_mapper.Commune == 'Rennes') |
-        # (coordinate_mapper.Commune == 'Orleans') |
         # (coordinate_mapper.Commune == 'Nantes') |
         (coordinate_mapper.Commune == 'Lille') |
         # (coordinate_mapper.Commune == 'Saint-Etienne') |
         (coordinate_mapper.Commune == 'Bordeaux') |
-        (coordinate_mapper.Commune == 'Strasbourg')
-        # (coordinate_mapper.Commune == 'Limoges')
+        (coordinate_mapper.Commune == 'Strasbourg') |
+        (coordinate_mapper.Commune == 'Limoges')
     ]
+    .copy()
 )
 
 #%%
-majors_df = majors_df.copy()
+local_df = majors_df.copy()
 
-majors_df['results'] = majors_df.apply(
-    lambda row: getTrips(
-        FC=row,
-        SD=today,
-        dataset=coordinate_mapper,
-        log_dest=log_dump), 
-    axis=1
-)
+trips_list = []
 
+while not local_df.empty:
+    for i, row in local_df.iterrows():
+        try:
+            results = getTrips(
+                origin=row,
+                startdate=today,
+                dataset=coordinate_mapper,
+                log_dest=log_dump
+            )
+            
+            trips_list.append([i, results])
+            local_df.drop(i, inplace=True)
+        
+        # If Keys are exhausted, save all obtained so far
+        except KeyError:
+            break
+        
+        except Exception:
+            pass
+        
+# majors_df['results'] = majors_df.apply(
+#     lambda row: getTrips(
+#         origin=row,
+#         startdate=today,
+#         dataset=coordinate_mapper,
+#         log_dest=log_dump), 
+#     axis=1
+# )
+
+API_results = pd.DataFrame(trips_list, columns = ['DeptNum', 'results'])
+API_results.set_index('DeptNum', inplace=True)
 #%%
+
+majors_df = majors_df.merge(API_results, left_index=True, right_index=True, how='left')
 # Split trips to different departments
 results = (
     majors_df
@@ -129,7 +157,7 @@ results.drop(
     inplace=True
 )
 
-results.sample(frac=1) #Shuffle
+results = results.sample(frac=1) #Shuffle
 
 #%%
 now = datetime.now()
