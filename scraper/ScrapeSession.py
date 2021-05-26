@@ -145,7 +145,7 @@ class ScrapeSession(object):
                     result[trip_id]['status'] = False
                     break
                 
-                time.sleep(random.uniform(4,6))
+                time.sleep(random.uniform(2,6))
 
         #-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+##-+#-+#-+#-+
                 self._logger.info('REQUESTING BASIC INFO')
@@ -180,7 +180,7 @@ class ScrapeSession(object):
                         break
                     continue
                     
-                time.sleep(random.uniform(8,10))
+                time.sleep(random.uniform(4,8))
                 
     #-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+##-+#-+#-+#-+
                 self._logger.info('REQUESTING TRIP DETAILS')
@@ -287,7 +287,7 @@ class ScrapeSession(object):
             # Capture any other exceptions; return control to while loop
             except Exception as e:
                 self._logger.info("REQUEST ERROR: {}".format(e))
-                time.sleep(random.uniform(10,12))
+                time.sleep(random.uniform(6,8))
                 continue
         
         return result
