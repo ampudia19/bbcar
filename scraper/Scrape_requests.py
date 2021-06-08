@@ -113,6 +113,7 @@ json_dump = []
 
 while API_results:
     try:
+        base_len = len(API_results)
         threads = []
         with ThreadPoolExecutor(max_workers=5) as executor:
             for trip in API_results:
@@ -134,6 +135,10 @@ while API_results:
         trips_dict.update(merged_results)
      
         API_results = [x for x in trips_dict if not trips_dict[x]['status']]
+        
+        next_len = len(API_results)
+        
+        print(f'ITERATION COMPLETED. NEXT ITERATION HAS {next_len} OVER {base_len} TRIPS')
     
     except Exception as e:
         print('########### ERROR THAT TERMINATES WHILE LOOP', e)

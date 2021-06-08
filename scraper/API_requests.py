@@ -72,7 +72,7 @@ majors_df = (
     .copy()
 )
 
-#%%
+#%% API calls
 local_df = majors_df.copy()
 
 trips_list = []
@@ -108,7 +108,7 @@ while not local_df.empty:
 
 API_results = pd.DataFrame(trips_list, columns = ['DeptNum', 'results'])
 API_results.set_index('DeptNum', inplace=True)
-#%%
+#%% Data Wrangling
 
 majors_df = majors_df.merge(API_results, left_index=True, right_index=True, how='left')
 # Split trips to different departments
