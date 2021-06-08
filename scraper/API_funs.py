@@ -4,6 +4,7 @@ from datetime import date
 import random
 import json
 from tqdm import tqdm
+import os
 
 from constants import API_KEY, API_KEY2, API_KEY3, API_KEY4, API_KEY5, API_KEY6
 
@@ -70,6 +71,7 @@ def getTrips(origin, startdate, dataset, log_dest):
     local_dict = API_DICT
     
     iterator = tqdm(dataset[~(dataset.index == origin.index[0])].iterrows())
+    
     for i, row in iterator:
         iterator.set_description(f'{origin.Commune}')
         
@@ -142,11 +144,11 @@ def getTrips(origin, startdate, dataset, log_dest):
                         f.write(json.dumps(rj))
     
                 trips.append(
-                    tuple([i, iterr_list])
+                    tuple([i, round(time.time()), iterr_list])
                 )
 
                 time.sleep(
-                    random.uniform(1, 3)
+                    random.uniform(1, 2)
                 )
     
             except ValueError:  # includes simplejson.decoder.JSONDecodeError
@@ -154,7 +156,7 @@ def getTrips(origin, startdate, dataset, log_dest):
                 with open(log_dest, 'a') as f:
                     f.write('ValueError')
                     
-                trips.append(tuple([i, None]))
+                trips.append(tuple([i, round(time.time()), None]))
     
             except KeyError as e:
                 print(e, f'with KEY {KEY}. Remaining calls:', response.headers['x-ratelimit-remaining-day'])
@@ -165,3 +167,14 @@ def getTrips(origin, startdate, dataset, log_dest):
                 pass
 
     return trips
+
+def uniquifier(path):
+    filename, extension = os.path.splitext(path)
+    counter = 0
+    path = filename + "_" + str(counter) + extension
+
+    while os.path.exists(path):
+        counter += 1
+        path = filename + "_" + str(counter) + extension
+
+    return path, counter

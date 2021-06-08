@@ -278,10 +278,12 @@ class ScrapeSession(object):
                     except KeyError:
                         self._logger.info("NO RATINGS")
                         result[trip_id]['rating'] = ['No Ratings']
+                        result[trip_id]['web_scrape_time'] = round(time.time())
                 
                 # Succesful scrape; break with status True
                 self._logger.info('<<<FINISHED SCRAPE>>>')
                 result[trip_id]['status'] = True
+                result[trip_id]['web_scrape_time'] = round(time.time())
                 break
             
             # Capture any other exceptions; return control to while loop

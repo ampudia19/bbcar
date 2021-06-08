@@ -12,7 +12,9 @@ import os
 from pathlib import Path
 import pandas as pd
 
-#%%
+today = date.today()
+
+#%% Paths
 bbcardir = Path(os.environ["BLABLACAR_PATH"])
 scriptsdir = bbcardir / 'git_scripts'
 datadir = bbcardir / 'data'
@@ -20,15 +22,17 @@ outdir = datadir / 'scraper' / 'output'
 
 os.chdir(scriptsdir / 'scraper')
 
-from API_funs import getTrips
+from API_funs import getTrips, uniquifier
 
-#%%
-
-today = date.today()
-
+#%% Log and output files
 log_dump = datadir / 'scraper' / '_API_dumps' / f'{today}_JSON.txt'
+file_to_operate, day_counter = (
+    uniquifier(
+        str(datadir / 'scraper' / '_API_dumps' / 'csv' / f'{today}_trips.csv')
+    )
+)
 
-#%%
+#%% Process coord combination df
 coordinate_mapper = pd.read_csv(
     datadir / 'scraper' / 'misc' / 'hotels-de-prefectures-fr.csv',
     sep=';'
@@ -51,7 +55,7 @@ coordinate_mapper = (
 )
     
 coordinate_mapper = coordinate_mapper
-#%%
+#%% Call in cities to request trips for
 majors_df = (
     coordinate_mapper
     .loc[
@@ -106,8 +110,9 @@ while not local_df.empty:
 #     axis=1
 # )
 
-API_results = pd.DataFrame(trips_list, columns = ['DeptNum', 'results'])
+API_results = pd.DataFrame(trips_list, columns=['DeptNum', 'results'])
 API_results.set_index('DeptNum', inplace=True)
+
 #%% Data Wrangling
 
 majors_df = majors_df.merge(API_results, left_index=True, right_index=True, how='left')
@@ -119,7 +124,7 @@ results = (
 )
 
 # Split destination and trip information
-results[['destination', 'trips']] = results['results'].apply(pd.Series)
+results[['destination', 'API_scrape_time', 'trips']] = results['results'].apply(pd.Series)
 
 # Explode json list data for individual blablacars
 results = (
@@ -157,11 +162,9 @@ results.drop(
     inplace=True
 )
 
+results['day_counter'] = day_counter
+
 results = results.sample(frac=1) #Shuffle
 
 #%%
-now = datetime.now()
-
-dt_string = now.strftime("%Y%m%d_%H")
-
-results.to_csv(outdir / f'{dt_string}h_trips.csv')
+results.to_csv(file_to_operate)

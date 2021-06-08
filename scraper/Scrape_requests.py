@@ -2,16 +2,21 @@ import os
 import json
 from pathlib import Path
 import pandas as pd
-from datetime import date
+from datetime import date, datetime
+import time
 
 from concurrent.futures import ThreadPoolExecutor, ALL_COMPLETED, wait, as_completed
-#%% Paths
+#%% Paths & times
 bbcardir = Path(os.environ['BLABLACAR_PATH'])
 scriptsdir = bbcardir / 'git_scripts'
 datadir = bbcardir / 'data'
 outdir = datadir / 'scraper' / 'output'
+csvdir = datadir / 'scraper' / '_API_dumps' / 'csv'
 os.chdir(scriptsdir / 'scraper')
+
 today = date.today()
+now = datetime.now()
+dt_string = now.strftime("%Y%m%d_%H")
 
 #%% Funs
 def uniquifier(path):
@@ -26,7 +31,7 @@ def uniquifier(path):
 
 def parser(file):
     '''
-    Parses nested dictionaries into a dataframe, saves pickle.
+    Parses nested dictionaries into a dataframe
 
     Parameters
     ----------
@@ -79,6 +84,7 @@ def parser(file):
         or col.startswith('vehicle_')
         or col.startswith('seats_')
         or col.startswith('ratings')
+        or col.startswith('web_scrape')
         ]
     
     output_df = (
@@ -90,20 +96,40 @@ def parser(file):
     
     return output_df
 
+file_to_operate = uniquifier(str(datadir / 'scraper' / '_scrape_dumps' / f'{today}_trips.txt'))
+
 #%% Input list of trips to read and file to save on
-list_of_paths = outdir.glob('*.csv')
-latest_path = max(list_of_paths, key=lambda p: p.stat().st_ctime) 
+list_of_paths = csvdir.glob('*.csv')
+latest_paths = sorted(list_of_paths, key=lambda p: p.stat().st_ctime)[-5:]
 
-API_results = pd.read_csv(latest_path)
+API_results = []
 
+for item in latest_paths:
+    
+    iter_results = pd.read_csv(item)
+    
+    # First drop removes possible trips going through multiple origin/dest combinations
+    iter_results = (
+        iter_results
+        .dropna(subset=['trip_id'])
+        .drop_duplicates(subset=['trip_id'], keep='first')
+    )
+    
+    API_results.append(iter_results)
+    
+# Second drop preserves only first time a trip is scraped out of 5 daily loops
+API_results = pd.concat(API_results)
 API_results = (
     API_results
-    .dropna(subset=['trip_id'])
-    .drop_duplicates(subset=['trip_id'])
-    ['trip_id'].to_list()
+    .sort_values(by=['trip_id', 'day_counter'])
+    .drop_duplicates(subset=['trip_id'], keep='first')
 )
 
-file_to_operate = uniquifier(str(datadir / 'scraper' / '_scrape_dumps' / f'{today}_trips.txt'))
+# Save main csv
+API_results.to_csv(outdir / f'{dt_string}h_trips.csv')
+
+# Create list to run web scraper through
+API_results = API_results['trip_id'].to_list()
 
 #%% Call scraper from ScrapeSession module, dump JSON results
 from ScrapeSession import ScrapeSession
@@ -138,7 +164,7 @@ while API_results:
         
         next_len = len(API_results)
         
-        print(f'ITERATION COMPLETED. NEXT ITERATION HAS {next_len} OVER {base_len} TRIPS')
+        print(f'ITERATION COMPLETED. NEXT ITERATION HAS {next_len}, DOWN FROM {base_len} ORIGINAL TRIPS')
     
     except Exception as e:
         print('########### ERROR THAT TERMINATES WHILE LOOP', e)
