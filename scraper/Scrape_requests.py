@@ -102,31 +102,30 @@ file_to_operate = uniquifier(str(datadir / 'scraper' / '_scrape_dumps' / f'{toda
 list_of_paths = csvdir.glob('*.csv')
 latest_paths = sorted(list_of_paths, key=lambda p: p.stat().st_ctime)[-5:]
 
-API_results = []
+lst_results = []
 
 for item in latest_paths:
-    
     iter_results = pd.read_csv(item)
-    
-    # First drop removes possible trips going through multiple origin/dest combinations
-    iter_results = (
-        iter_results
-        .dropna(subset=['trip_id'])
-        .drop_duplicates(subset=['trip_id'], keep='first')
-    )
-    
-    API_results.append(iter_results)
-    
-# Second drop preserves only first time a trip is scraped out of 5 daily loops
-API_results = pd.concat(API_results)
+    lst_results.append(iter_results)
+results = pd.concat(lst_results)
+
+# Drop preserves only first time a trip is scraped in any of the 5 daily loops
 API_results = (
-    API_results
+    results
+    .dropna(subset=['trip_id'])
     .sort_values(by=['trip_id', 'day_counter'])
     .drop_duplicates(subset=['trip_id'], keep='first')
 )
 
-# Save main csv
-API_results.to_csv(outdir / f'{dt_string}h_trips.csv')
+# Save unique matches for all trips
+store_results = (
+    results
+    .dropna(subset=['trip_id'])
+    .sort_values(by=['trip_id', 'day_counter'])
+    .drop_duplicates(subset=['trip_id', 'DeptNum', 'destination'], keep='first')
+)
+
+store_results.to_csv(outdir / f'{dt_string}h_trips.csv')
 
 # Create list to run web scraper through
 API_results = API_results['trip_id'].to_list()

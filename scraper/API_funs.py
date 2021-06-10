@@ -7,6 +7,7 @@ from tqdm import tqdm
 import os
 
 from constants import API_KEY, API_KEY2, API_KEY3, API_KEY4, API_KEY5, API_KEY6
+from constants import API_KEY7, API_KEY8, API_KEY9, API_KEY10, API_KEY11, API_KEY12
 
 API_DICT = {
     'main': API_KEY,
@@ -14,7 +15,13 @@ API_DICT = {
     'aux2': API_KEY3,
     'aux3': API_KEY4,
     'aux4': API_KEY5,
-    'aux6': API_KEY6
+    'aux6': API_KEY6,
+    'aux7': API_KEY7,
+    'aux8': API_KEY8,
+    'aux9': API_KEY9,
+    'aux10': API_KEY10,
+    'aux11': API_KEY11,
+    'aux12': API_KEY12
 }
 
 #%%
@@ -159,7 +166,14 @@ def getTrips(origin, startdate, dataset, log_dest):
                 trips.append(tuple([i, round(time.time()), None]))
     
             except KeyError as e:
-                print(e, f'with KEY {KEY}. Remaining calls:', response.headers['x-ratelimit-remaining-day'])
+                remaining_calls = response.headers['x-ratelimit-remaining-day']
+                print(e, f'with KEY {KEY}. Remaining calls: {remaining_calls}')
+                if remaining_calls != 0:  
+                    time.sleep(60)
+                if remaining_calls == 0:
+                    del API_DICT['main']
+                    time.sleep(15)
+                    KEY = local_dict['aux1']
                 continue
                 
             except ConnectionError as e:
