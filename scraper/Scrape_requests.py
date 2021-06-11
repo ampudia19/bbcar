@@ -140,25 +140,24 @@ while API_results:
     try:
         base_len = len(API_results)
         threads = []
+        
+        # Multithreading
         with ThreadPoolExecutor(max_workers=5) as executor:
             for trip in API_results:
                 threads.append(executor.submit(ScrapeSession().scrape, trip))
             for trip in as_completed(threads):
                 json_dump.append(trip.result())
                 
-            wait(threads, timeout=7200, return_when=ALL_COMPLETED)
-            # for trip in as_completed(threads)
-            #     loop_list.append(tuple([trip, rj_trip['status']]))
+            wait(threads, timeout=7200, return_when=ALL_COMPLETED)            
                 
-            #     if rj_trip['status']:
-            #         trip_dict[trip] = rj_trip
-            
-                
+        # Build temp dictionary of results
         merged_results = [x for i in threads for x in i.result().items()]
         merged_results = dict((x, y) for x, y in merged_results)
         
+        # Grow final dict
         trips_dict.update(merged_results)
-     
+        
+        # Redefine trips to scrape if status is False
         API_results = [x for x in trips_dict if not trips_dict[x]['status']]
         
         next_len = len(API_results)

@@ -3,6 +3,7 @@ import logging
 import requests
 from datetime import date
 import random
+import threading
 
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
@@ -28,7 +29,7 @@ file_handler.setFormatter(
 stream_handler = logging.StreamHandler()
 
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format=MESSAGE_INFO,
     datefmt=DATEFMT,
     handlers=[
@@ -37,33 +38,29 @@ logging.basicConfig(
     ]
 )
 
+#%%
 class ScrapeSession(object):
     _BASE_URL = "https://www.blablacar.co.uk"
     USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36 OPR/76.0.4017.107"
+
+    prx_lst = [
+        '198.204.241.50:17010',
+        '69.30.217.114:19002',
+        '192.187.126.98:19019',
+        '192.151.145.74:19005',
+        '142.54.163.90:19012'
+    ]
+
     def __init__(self):
         self._logger = logging.getLogger(self.__class__.__name__)
         
-        # ua = UserAgent()
-        # USER_AGENT = str(self.ua.random)
+        self.thread_local = threading.local()
         
-        time.sleep(random.uniform(1, 2))
-        
-        self._create_session()
-        
-    @staticmethod
-    def _super_proxy():
-        proxies = [
-            '198.204.241.50:17010',
-            '69.30.217.114:19002',
-            '192.187.126.98:19019',
-            '192.151.145.74:19005',
-            '142.54.163.90:19012'
-        ]
-        
-        pick = random.choice(proxies)
-        return pick
-
     def _create_session(self):
+        '''
+        Creates first session.
+    
+        '''
         headers = {
             "User-Agent": self.USER_AGENT,
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
@@ -79,10 +76,9 @@ class ScrapeSession(object):
         self.session = requests.session()
         self.session.headers = headers
         self.session.verify = False
-        proxy = self._super_proxy()
         self.session.proxies = {
-            'http': proxy,
-            'https': proxy,
+            'http': self.proxy,
+            'https': self.proxy,
         }
         
         self.skip = False
@@ -95,7 +91,7 @@ class ScrapeSession(object):
                 self.skip = True
                 break
         
-    def scrape(self, trip_id):
+    def __call__(self, trip_id):
         '''
         Parses JSON results from trip-specific Blablacar page. Returns 
             - Name of driver
@@ -107,11 +103,24 @@ class ScrapeSession(object):
         -------
         :param trip_id:
         :return:
-            
+
         '''
-        trip_info = {'trip': trip_id}
-        self._logger = logging.LoggerAdapter(self._logger, trip_info)
         
+        # Assign thread-specific proxy for multithreading
+        try:
+            proxy = self.thread_local.proxy
+        except AttributeError:
+            proxy = self.prx_lst.pop()
+            print(f'New thread, assigned {self.proxy}')
+
+        #-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+##-+#-+#-+#-+        
+        self._logger.info('CREATE SESSION')
+        self._create_session()
+                
+        self._logger = logging.LoggerAdapter(self._logger, {'proxy' : proxy})
+        self._logger = logging.LoggerAdapter(self._logger, {'trip': trip_id})
+        
+        #-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+##-+#-+#-+#-+
         result = {
             trip_id: {
                 "ride": {},
@@ -136,9 +145,7 @@ class ScrapeSession(object):
                 
                 # Loop iteration
                 i+=1
-                
-                self._logger.info('CREATE SESSION')
-                
+                                
                 # If the scrape fails at least three times, skip
                 if i >= 3:
                     self._logger.info('SKIPPED REQUEST')
