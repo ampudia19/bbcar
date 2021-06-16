@@ -15,7 +15,7 @@ import pandas as pd
 today = date.today()
 
 #%% Paths
-bbcardir = Path(os.environ["BLABLACAR_PATH"])
+bbcardir = Path(os.environ["BLABLACAR"])
 scriptsdir = bbcardir / 'git_scripts'
 datadir = bbcardir / 'data'
 outdir = datadir / 'scraper' / 'output'

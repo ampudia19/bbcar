@@ -7,7 +7,7 @@ import time
 
 from concurrent.futures import ThreadPoolExecutor, ALL_COMPLETED, wait, as_completed
 #%% Paths & times
-bbcardir = Path(os.environ['BLABLACAR_PATH'])
+bbcardir = Path(os.environ['BLABLACAR'])
 scriptsdir = bbcardir / 'git_scripts'
 datadir = bbcardir / 'data'
 outdir = datadir / 'scraper' / 'output'

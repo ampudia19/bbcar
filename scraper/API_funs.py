@@ -174,6 +174,7 @@ def getTrips(origin, startdate, dataset, log_dest):
                     del API_DICT['main']
                     time.sleep(15)
                     KEY = local_dict['aux1']
+                    QS_BASE['key'] = KEY
                 continue
                 
             except ConnectionError as e:
