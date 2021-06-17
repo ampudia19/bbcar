@@ -54,10 +54,11 @@ def parser(file):
         print(i)
         try:
             rating_info = [item for sublist in row['rating'] for item in sublist]
-        
+            
             ride_df = pd.DataFrame([row['ride']], columns=row['ride'].keys())
             
             ride_df['ratings'] = [rating_info]
+            ride_df['web_scrape_time'] = row['web_scrape_time']
             
             ride_df = (
                 ride_df
@@ -100,6 +101,8 @@ file_to_operate = uniquifier(str(datadir / 'scraper' / '_scrape_dumps' / f'{toda
 
 #%% Input list of trips to read and file to save on
 list_of_paths = csvdir.glob('*.csv')
+
+## Make this ONLY take str with right date
 latest_paths = sorted(list_of_paths, key=lambda p: p.stat().st_ctime)[-5:]
 
 lst_results = []
@@ -109,7 +112,7 @@ for item in latest_paths:
     lst_results.append(iter_results)
 results = pd.concat(lst_results)
 
-# Drop preserves only first time a trip is scraped in any of the 5 daily loops
+# Preserve only first time a trip is scraped in any of the 5 daily loops
 API_results = (
     results
     .dropna(subset=['trip_id'])

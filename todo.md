@@ -7,3 +7,6 @@
 
 - :apple: chore: reduce time it takes for loop to complete: constaint to same-day trips in webscrape. 
 		- It currently captures trips as many as three days ahead of today date.
+
+- :apple: chore: take DICT outside funs so that expended keys are popped permantently.
+- :apple: chore: fix five-file that is loaded for scraper using date. 
