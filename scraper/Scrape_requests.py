@@ -2,8 +2,9 @@ import os
 import json
 from pathlib import Path
 import pandas as pd
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 import time
+import numpy as np
 
 from concurrent.futures import ThreadPoolExecutor, ALL_COMPLETED, wait, as_completed
 #%% Paths & times
@@ -14,8 +15,10 @@ outdir = datadir / 'scraper' / 'output'
 csvdir = datadir / 'scraper' / '_API_dumps' / 'csv'
 os.chdir(scriptsdir / 'scraper')
 
-today = date.today()
 now = datetime.now()
+today = np.datetime64('today')
+tomorrow = today + np.timedelta64(1, 'D')
+
 dt_string = now.strftime("%Y%m%d_%H")
 
 #%% Funs
@@ -101,31 +104,45 @@ file_to_operate = uniquifier(str(datadir / 'scraper' / '_scrape_dumps' / f'{toda
 
 #%% Input list of trips to read and file to save on
 list_of_paths = csvdir.glob('*.csv')
+day_paths = [x for x in list_of_paths if str(today) in x.name]
 
-## Make this ONLY take str with right date
-latest_paths = sorted(list_of_paths, key=lambda p: p.stat().st_ctime)[-5:]
-
+# Load in data
 lst_results = []
-
-for item in latest_paths:
+for item in day_paths:
     iter_results = pd.read_csv(item)
     lst_results.append(iter_results)
 results = pd.concat(lst_results)
 
-# Preserve only first time a trip is scraped in any of the 5 daily loops
+# Define datetimes
+results['start.date_time'] = pd.to_datetime(results['start.date_time'])
+results['end.date_time'] = pd.to_datetime(results['end.date_time'])
+
+# Preserve last time a trip is scraped in any of the 5 daily loops, while retaining information on the iteration at which it's scraped for the first time
 API_results = (
     results
     .dropna(subset=['trip_id'])
-    .sort_values(by=['trip_id', 'day_counter'])
-    .drop_duplicates(subset=['trip_id'], keep='first')
+    .sort_values(by=['num_id', 'day_counter'])
+    .assign(iter_found=lambda df:
+        df.groupby('num_id')['day_counter'].transform('min')
+    )
+    .drop_duplicates(subset=['num_id'], keep='last')
+)
+
+# Keep today-tomorrow trips
+API_results = (
+    API_results
+    .loc[
+        (API_results['start.date_time'].dt.date == today) |
+        (API_results['start.date_time'].dt.date == tomorrow)
+    ]
 )
 
 # Save unique matches for all trips
 store_results = (
     results
     .dropna(subset=['trip_id'])
-    .sort_values(by=['trip_id', 'day_counter'])
-    .drop_duplicates(subset=['trip_id', 'DeptNum', 'destination'], keep='first')
+    .sort_values(by=['num_id', 'day_counter'])
+    .drop_duplicates(subset=['num_id', 'DeptNum', 'destination'], keep='first')
 )
 
 store_results.to_csv(outdir / f'{dt_string}h_trips.csv')
@@ -150,12 +167,6 @@ while API_results:
                 json_dump.append(trip.result())
                 
             wait(threads, timeout=7200, return_when=ALL_COMPLETED)
-            # for trip in as_completed(threads)
-            #     loop_list.append(tuple([trip, rj_trip['status']]))
-                
-            #     if rj_trip['status']:
-            #         trip_dict[trip] = rj_trip
-            
                 
         merged_results = [x for i in threads for x in i.result().items()]
         merged_results = dict((x, y) for x, y in merged_results)
@@ -182,4 +193,6 @@ with open(file_to_operate, 'w') as f:
 
 output_df = parser(file_to_operate)
 
-output_df.to_pickle(outdir / 'parsed_trips' / f'{today}_parsed_trip_results.pkl')
+file_to_save = uniquifier(str(outdir / 'parsed_trips' / f'{today}_parsed_trip_results.pkl'))
+
+output_df.to_pickle(file_to_save)

@@ -1,6 +1,6 @@
 import requests
 import time
-from datetime import date
+from datetime import date, datetime
 import random
 import json
 from tqdm import tqdm
@@ -75,16 +75,16 @@ def getTrips(origin, startdate, dataset, log_dest):
     '''
     trips = []
 
-    local_dict = API_DICT
+    # local_dict = API_DICT
     
     iterator = tqdm(dataset[~(dataset.index == origin.index[0])].iterrows())
     
     for i, row in iterator:
         iterator.set_description(f'{origin.Commune}')
         
-        local_dict = rotate(local_dict)
-        KEY = local_dict['main']
-
+        # local_dict = rotate(local_dict)
+        KEY = random.choice(list(API_DICT.values()))
+        print(KEY)
         page = None
         iterr_list = []
 
@@ -151,7 +151,7 @@ def getTrips(origin, startdate, dataset, log_dest):
                         f.write(json.dumps(rj))
     
                 trips.append(
-                    tuple([i, round(time.time()), iterr_list])
+                    tuple([i, datetime.fromtimestamp(time.time()), iterr_list])
                 )
 
                 time.sleep(
@@ -163,7 +163,7 @@ def getTrips(origin, startdate, dataset, log_dest):
                 with open(log_dest, 'a') as f:
                     f.write('ValueError')
                     
-                trips.append(tuple([i, round(time.time()), None]))
+                trips.append(tuple([i, datetime.fromtimestamp(time.time()), None]))
     
             except KeyError as e:
                 remaining_calls = response.headers['x-ratelimit-remaining-day']
@@ -171,7 +171,6 @@ def getTrips(origin, startdate, dataset, log_dest):
                 if remaining_calls != 0:  
                     time.sleep(60)
                 if remaining_calls == 0:
-                    del API_DICT['main']
                     time.sleep(15)
                     KEY = local_dict['aux1']
                     QS_BASE['key'] = KEY

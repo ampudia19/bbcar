@@ -1,6 +1,7 @@
-# -*- coding: utf-8 -*-
 """
-Created on Tue May  4 13:11:55 2021
+API_requests.
+--------------
+Maps the API functions on ori-dest pairs, processes data and stores it.
 
 @author: David
 """
@@ -53,8 +54,6 @@ coordinate_mapper = (
     )
     .set_index('DeptNum')
 )
-    
-coordinate_mapper = coordinate_mapper
 #%% Call in cities to request trips for
 majors_df = (
     coordinate_mapper
@@ -75,7 +74,7 @@ majors_df = (
     ]
     .copy()
 )
-
+# coordinate_mapper = coordinate_mapper.loc[coordinate_mapper.index==69]
 #%% API calls
 local_df = majors_df.copy()
 
@@ -94,28 +93,25 @@ while not local_df.empty:
             trips_list.append([i, results])
             local_df.drop(i, inplace=True)
         
-        # If Keys are exhausted, save all obtained so far
+        # Key error includes empty local_df. Break outside while loop
         except KeyError:
             break
         
+        # If any other error, continues iterrows 
         except Exception:
             pass
-        
-# majors_df['results'] = majors_df.apply(
-#     lambda row: getTrips(
-#         origin=row,
-#         startdate=today,
-#         dataset=coordinate_mapper,
-#         log_dest=log_dump), 
-#     axis=1
-# )
 
 API_results = pd.DataFrame(trips_list, columns=['DeptNum', 'results'])
 API_results.set_index('DeptNum', inplace=True)
 
 #%% Data Wrangling
+majors_df = majors_df.merge(
+    API_results,
+    left_index=True,
+    right_index=True,
+    how='left'
+)
 
-majors_df = majors_df.merge(API_results, left_index=True, right_index=True, how='left')
 # Split trips to different departments
 results = (
     majors_df
@@ -146,6 +142,9 @@ results['end'] = [x[1] for x in results['waypoints']]
 
 results = results.join(pd.json_normalize(results['start'].tolist()).add_prefix("start."))
 results = results.join(pd.json_normalize(results['end'].tolist()).add_prefix("end."))
+
+# Extract actual trip identifier (numeric)
+results['num_id'] = results.trip_id.str.extract('(\d+)')
 
 results.drop(
     columns=[
