@@ -148,6 +148,7 @@ class ScrapeSession(object):
                 if i >= 3:
                     self._logger.info('SKIPPED REQUEST')
                     result[trip_id]['status'] = False
+                    time.sleep(random.uniform(10,60))
                     break
                 
                 time.sleep(random.uniform(2,6))

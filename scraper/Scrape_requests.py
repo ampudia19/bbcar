@@ -165,20 +165,20 @@ while API_results:
                 threads.append(executor.submit(ScrapeSession().scrape, trip))
             for trip in as_completed(threads):
                 json_dump.append(trip.result())
-                
+
             wait(threads, timeout=7200, return_when=ALL_COMPLETED)
-                
+
         merged_results = [x for i in threads for x in i.result().items()]
         merged_results = dict((x, y) for x, y in merged_results)
-        
+
         trips_dict.update(merged_results)
-     
+
         API_results = [x for x in trips_dict if not trips_dict[x]['status']]
-        
+
         next_len = len(API_results)
-        
+
         print(f'ITERATION COMPLETED. NEXT ITERATION HAS {next_len}, DOWN FROM {base_len} ORIGINAL TRIPS')
-    
+
     except Exception as e:
         print('########### ERROR THAT TERMINATES WHILE LOOP', e)
         # If crash, save results
