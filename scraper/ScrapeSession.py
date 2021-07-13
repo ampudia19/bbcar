@@ -53,11 +53,16 @@ class ScrapeSession(object):
     @staticmethod
     def _super_proxy():
         proxies = [
-            '198.204.241.50:17010',
-            '69.30.217.114:19002',
-            '192.187.126.98:19019',
-            '192.151.145.74:19005',
-            '142.54.163.90:19012'
+            '192.151.145.74:19008',
+            '107.150.42.74:17053',
+            '192.187.111.82:17061',
+            '69.30.217.114:19011',
+            '173.208.208.42:19008',
+            '107.150.42.74:17018',
+            '216.244.74.138:19010',
+            '192.187.111.82:17098',
+            '192.187.111.82:17085',
+            '198.204.241.50:17099',
         ]
         
         pick = random.choice(proxies)
@@ -139,7 +144,7 @@ class ScrapeSession(object):
                 
                 self._logger.info('CREATE SESSION')
                 
-                # If the scrape fails at least three times, skip
+                # If the scrape fails two times, skip
                 if i >= 3:
                     self._logger.info('SKIPPED REQUEST')
                     result[trip_id]['status'] = False
@@ -175,8 +180,8 @@ class ScrapeSession(object):
                     
                     # If repeated, break code; else return to while loop
                     if i >= 2:
-                        self._logger.info('SKIPPED REQUEST')
-                        result[trip_id]['status'] = False
+                        self._logger.info('GATEWAY LOSS')
+                        result[trip_id]['status'] = 'Deleted'
                         break
                     continue
                     
@@ -234,6 +239,17 @@ class ScrapeSession(object):
                     self._logger.info("FAULT AT SECOND REQUEST: {} {}".format(response.status_code, response.reason))
                     continue
         
+                if response.status_code == 502: # Not an exception
+                    self._logger.info(f'502 BAD GATEWAY: {response.reason}')
+                    time.sleep(random.uniform(5, 10))
+                            
+                    # If repeated, break code; else return to while loop
+                    if i >= 2:
+                        self._logger.info('GATEWAY LOSS')
+                        result[trip_id]['status'] = 'Deleted'
+                        break
+                    continue
+                
                 ride = response.json()
                 result[trip_id]['ride'] = ride
                 

@@ -109,8 +109,8 @@ day_paths = [x for x in list_of_paths if str(today) in x.name]
 # Load in data
 lst_results = []
 for item in day_paths:
-    iter_results = pd.read_csv(item)
-    lst_results.append(iter_results)
+    _ = pd.read_csv(item)
+    lst_results.append(_)
 results = pd.concat(lst_results)
 
 # Define datetimes
@@ -160,7 +160,7 @@ while API_results:
     try:
         base_len = len(API_results)
         threads = []
-        with ThreadPoolExecutor(max_workers=5) as executor:
+        with ThreadPoolExecutor(max_workers=10) as executor:
             for trip in API_results:
                 threads.append(executor.submit(ScrapeSession().scrape, trip))
             for trip in as_completed(threads):

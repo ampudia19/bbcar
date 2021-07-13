@@ -8,6 +8,7 @@ import os
 
 from constants import API_KEY, API_KEY2, API_KEY3, API_KEY4, API_KEY5, API_KEY6
 from constants import API_KEY7, API_KEY8, API_KEY9, API_KEY10, API_KEY11, API_KEY12
+from constants import API_KEY13, API_KEY14, API_KEY15, API_KEY16
 
 API_DICT = {
     'main': API_KEY,
@@ -21,7 +22,11 @@ API_DICT = {
     'aux9': API_KEY9,
     'aux10': API_KEY10,
     'aux11': API_KEY11,
-    'aux12': API_KEY12
+    'aux12': API_KEY12,
+    'aux13': API_KEY13,
+    'aux14': API_KEY14,
+    'aux15': API_KEY15,
+    'aux16': API_KEY16,
 }
 
 #%%
@@ -84,7 +89,6 @@ def getTrips(origin, startdate, dataset, log_dest):
         
         # local_dict = rotate(local_dict)
         KEY = random.choice(list(API_DICT.values()))
-        print(KEY)
         page = None
         iterr_list = []
 
