@@ -94,11 +94,13 @@ while not local_df.empty:
             local_df.drop(i, inplace=True)
         
         # Key error includes empty local_df. Break outside while loop
-        except KeyError:
+        except KeyError as e:
+            print(e)
             break
         
         # If any other error, continues iterrows 
-        except Exception:
+        except Exception as e:
+            print(e)
             pass
 
 API_results = pd.DataFrame(trips_list, columns=['DeptNum', 'results'])

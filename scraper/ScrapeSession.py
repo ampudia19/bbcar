@@ -52,21 +52,18 @@ class ScrapeSession(object):
         
     @staticmethod
     def _super_proxy():
-        proxies = [
-            '192.151.145.74:19008',
-            '107.150.42.74:17053',
-            '192.187.111.82:17061',
-            '69.30.217.114:19011',
-            '173.208.208.42:19008',
-            '107.150.42.74:17018',
-            '216.244.74.138:19010',
-            '192.187.111.82:17098',
-            '192.187.111.82:17085',
-            '198.204.241.50:17099',
-        ]
+        url = "https://wtfismyip.com"
+        proxy_host = "gate.smartproxy.com"
+        proxy_port = "7000"
+        proxy_user = "blablacar"
+        proxy_password = "blablacar_pass"
+
+        proxies = {
+            "https": f"http://user-{proxy_user}:{proxy_password}@{proxy_host}:{proxy_port}/",
+            "http": f"http://user-{proxy_user}:{proxy_password}@{proxy_host}:{proxy_port}/",
+        }
         
-        pick = random.choice(proxies)
-        return pick
+        return proxies
 
     def _create_session(self):
         headers = {
@@ -85,15 +82,13 @@ class ScrapeSession(object):
         self.session.headers = headers
         self.session.verify = False
         proxy = self._super_proxy()
-        self.session.proxies = {
-            'http': proxy,
-            'https': proxy,
-        }
+        self.session.proxies = proxy
         
         self.skip = False
         while True:
             try:
                 self.session.get(self._BASE_URL, timeout=10)
+                time.sleep(random.uniform(1,3))
                 break
             except Exception as e:
                 print('ERROR AT SETTING SESSION:', e)
@@ -132,6 +127,8 @@ class ScrapeSession(object):
         
         i = 0
         
+        self._logger.info('CREATE SESSION ({})'.format(self.session.proxies['http']))
+        
         while True:    
             try:
                 # Check for Session set-up
@@ -142,10 +139,8 @@ class ScrapeSession(object):
                 # Loop iteration
                 i+=1
                 
-                self._logger.info('CREATE SESSION')
-                
                 # If the scrape fails two times, skip
-                if i >= 3:
+                if i >= 2:
                     self._logger.info('SKIPPED REQUEST')
                     result[trip_id]['status'] = False
                     time.sleep(random.uniform(10,60))
@@ -154,16 +149,16 @@ class ScrapeSession(object):
                 time.sleep(random.uniform(2,6))
 
         #-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+#-+##-+#-+#-+#-+
-                self._logger.info('REQUESTING BASIC INFO')
+                self._logger.info('REQUESTING BASIC INFO ({})'.format(self.session.proxies['http']))
                 response = self.session.get(
                     "{}/trip".format(self._BASE_URL),
                     params=data,
                     timeout=30
                 )
-                
+                time.sleep(random.uniform(1,5))
                 # Catch FORBIDDEN HTML responses
                 if response.status_code == 403:
-                    self._logger.info(f'403 FORBIDDEN ERROR: {response.reason}')
+                    self._logger.info('403 FORBIDDEN ERROR ({}): {}'.format(self.session.proxies['http'], response.reason))
                     time.sleep(random.uniform(4,6))
                     
                     # If repeated, break code; else return to while loop
@@ -315,4 +310,5 @@ class ScrapeSession(object):
 if __name__ == '__main__':
     scrape_session = ScrapeSession()
     
+#%%
 

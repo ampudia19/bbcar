@@ -4,6 +4,7 @@ from pathlib import Path
 import pandas as pd
 from datetime import date, datetime, timedelta
 import time
+import random
 import numpy as np
 
 from concurrent.futures import ThreadPoolExecutor, ALL_COMPLETED, wait, as_completed
@@ -132,8 +133,8 @@ API_results = (
 API_results = (
     API_results
     .loc[
-        (API_results['start.date_time'].dt.date == today) |
-        (API_results['start.date_time'].dt.date == tomorrow)
+        (API_results['start.date_time'].dt.date == today) 
+        # | (API_results['start.date_time'].dt.date == tomorrow)
     ]
 )
 
@@ -160,9 +161,10 @@ while API_results:
     try:
         base_len = len(API_results)
         threads = []
-        with ThreadPoolExecutor(max_workers=10) as executor:
+        with ThreadPoolExecutor(max_workers=1) as executor:
             for trip in API_results:
                 threads.append(executor.submit(ScrapeSession().scrape, trip))
+                time.sleep(random.uniform(3, 5))
             for trip in as_completed(threads):
                 json_dump.append(trip.result())
 

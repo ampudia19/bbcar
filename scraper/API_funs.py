@@ -111,6 +111,17 @@ def getTrips(origin, startdate, dataset, log_dest):
             **QS_BASE
         )
 
+        url = "https://wtfismyip.com"
+        proxy_host = "gate.smartproxy.com"
+        proxy_port = "7000"
+        proxy_user = "blablacar"
+        proxy_password = "blablacar_pass"
+
+        # proxies = {
+        #     "https": f"http://user-{proxy_user}:{proxy_password}@{proxy_host}:{proxy_port}/",
+        #     "http": f"http://user-{proxy_user}:{proxy_password}@{proxy_host}:{proxy_port}/",
+        # }
+
         rj = None
         
         while rj is None:
@@ -119,12 +130,15 @@ def getTrips(origin, startdate, dataset, log_dest):
                     "GET",
                     URL,
                     headers=HEADERS,
-                    params=querystring
+                    params=querystring,
+                    # proxies=proxies
                 )
     
                 rj = response.json()
     
                 iterr_list.extend(rj['trips'])
+
+                time.sleep(random.uniform(1,3))
     
                 with open(log_dest, 'a') as f:
                     f.write(json.dumps(rj))
@@ -144,7 +158,9 @@ def getTrips(origin, startdate, dataset, log_dest):
                         "GET",
                         URL,
                         headers=HEADERS,
-                        params=querystring
+                        params=querystring, 
+                        timeout=120,
+                        # proxies=proxies
                     )
     
                     rj = response.json()
@@ -159,7 +175,7 @@ def getTrips(origin, startdate, dataset, log_dest):
                 )
 
                 time.sleep(
-                    random.uniform(1, 2)
+                    random.uniform(1, 5)
                 )
     
             except ValueError:  # includes simplejson.decoder.JSONDecodeError
