@@ -138,14 +138,14 @@ def getTrips(origin, startdate, dataset, log_dest):
     
                 iterr_list.extend(rj['trips'])
 
-                time.sleep(random.uniform(1,3))
+                time.sleep(random.uniform(0.5,1))
     
                 with open(log_dest, 'a') as f:
                     f.write(json.dumps(rj))
     
                 while 'next_cursor' in rj:
     
-                    time.sleep(random.uniform(1,2))
+                    time.sleep(random.uniform(0.5,1))
     
                     page = rj['next_cursor']
     
@@ -159,7 +159,7 @@ def getTrips(origin, startdate, dataset, log_dest):
                         URL,
                         headers=HEADERS,
                         params=querystring, 
-                        timeout=120,
+                        timeout=30,
                         # proxies=proxies
                     )
     
@@ -175,7 +175,7 @@ def getTrips(origin, startdate, dataset, log_dest):
                 )
 
                 time.sleep(
-                    random.uniform(1, 5)
+                    random.uniform(1, 2)
                 )
     
             except ValueError:  # includes simplejson.decoder.JSONDecodeError
@@ -189,7 +189,7 @@ def getTrips(origin, startdate, dataset, log_dest):
                 remaining_calls = response.headers['x-ratelimit-remaining-day']
                 print(e, f'with KEY {KEY}. Remaining calls: {remaining_calls}')
                 if remaining_calls != 0:  
-                    time.sleep(60)
+                    time.sleep(15)
                 if remaining_calls == 0:
                     time.sleep(15)
                     KEY = local_dict['aux1']

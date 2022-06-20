@@ -161,7 +161,7 @@ while API_results:
     try:
         base_len = len(API_results)
         threads = []
-        with ThreadPoolExecutor(max_workers=1) as executor:
+        with ThreadPoolExecutor(max_workers=6) as executor:
             for trip in API_results:
                 threads.append(executor.submit(ScrapeSession().scrape, trip))
                 time.sleep(random.uniform(3, 5))

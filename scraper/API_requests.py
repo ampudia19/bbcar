@@ -102,6 +102,10 @@ while not local_df.empty:
         except Exception as e:
             print(e)
             pass
+    cur_length = local_df.shape[0]
+    scraped_length = len(trips_list)
+    
+    print(f"TRIP LOOP COMPLETED: Retry {cur_length} trips. {scraped_length} trips have been scraped.")
 
 API_results = pd.DataFrame(trips_list, columns=['DeptNum', 'results'])
 API_results.set_index('DeptNum', inplace=True)
