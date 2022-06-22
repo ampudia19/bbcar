@@ -124,10 +124,15 @@ class ThumbnailParser:
             thumbs = [t[:-5] for t in os.listdir(thumb_datadir) if "jpeg" in t]
             self.read_data(file=file)
             for type in self.utype:
-                self.types[type]["func"]()
-                self.outdata = self.types[type]["data"]
-                self.outdata = self.outdata.loc[~self.outdata["ID"].isin(thumbs)]
-                self.outdata.progress_apply(lambda row: self.parser(row), axis=1)
+                try:
+                    self.types[type]["func"]()
+                    self.outdata = self.types[type]["data"]
+                    self.outdata = self.outdata.loc[~self.outdata["ID"].isin(thumbs)]
+                    self.outdata.progress_apply(lambda row: self.parser(row), axis=1)
+                except KeyError:
+                    print(f"No new thumbnails for day {str(file.__name__)}")
+                    continue
+
 # %%
 if __name__ == "__main__":
     filesload = [x for x in os.listdir(parsed_trips) if "trip_results" in str(x)]
