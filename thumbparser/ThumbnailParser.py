@@ -8,6 +8,9 @@ import numpy as np
 
 from dateutil import tz
 from tqdm import tqdm
+from blacklist_utils import *
+
+
 tqdm.pandas()
 pd.options.mode.chained_assignment = None
 pd.set_option("display.max_columns", 250)
@@ -16,9 +19,10 @@ pd.set_option("display.max_colwidth", None)
 pd.options.display.float_format = "{:.2f}".format
 
 basedir = Path(os.environ['BLABLACAR'])
-datadir = basedir / "data"
+datadir = basedir / "output_data"
 scrape_datadir = datadir / 'scraper' / 'output'
-thumb_datadir = datadir / "thumbnails"
+thumb_datadir = r"C:\Users\u82929\thumbnails"
+parser_dir = basedir / "git_scripts" / "thumbparser"
 parsed_trips = scrape_datadir / 'parsed_trips'
 
 # %%
@@ -113,6 +117,12 @@ class ThumbnailParser:
             if response.status_code == 200:
                 with open(str(self.output) + '/' + row["ID"] + '.jpeg', 'wb') as f:
                     f.write(response.content)
+            if response.status_code == 403:
+                try:
+                    update_blacklist(parser_dir, "blacklist.pkl", row["ID"])
+                except FileNotFoundError:
+                    create_blacklist(parser_dir, "blacklist.pkl", row["ID"])
+
         except:
             pass
 
@@ -128,18 +138,22 @@ class ThumbnailParser:
                     self.types[type]["func"]()
                     self.outdata = self.types[type]["data"]
                     self.outdata = self.outdata.loc[~self.outdata["ID"].isin(thumbs)]
+                    try:
+                        blacklist = get_blacklist(parser_dir, "blacklist.pkl")
+                        self.outdata = self.outdata.loc[~self.outdata["ID"].isin(blacklist)]
+                    except:
+                        pass
                     self.outdata.progress_apply(lambda row: self.parser(row), axis=1)
                 except KeyError:
-                    print(f"No new thumbnails for day {str(file.__name__)}")
+                    print(f"No new thumbnails for day {str(file.name)}")
                     continue
-
 # %%
 if __name__ == "__main__":
     filesload = [x for x in os.listdir(parsed_trips) if "trip_results" in str(x)]
     for file in filesload:
         instance = ThumbnailParser(
             files=parsed_trips / file, 
-            utype=["ratings"],
+            utype=["ratings", "passengers", "drivers"],
             output=thumb_datadir
         )
         instance.parse_trips()
