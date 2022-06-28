@@ -1,7 +1,9 @@
 # %%
-import os, re, requests, datetime
+import os, sys, re, requests, datetime
 from typing import Union
 from pathlib import Path
+import joblib
+from joblib import Parallel, delayed
 
 import pandas as pd
 import numpy as np
@@ -18,11 +20,10 @@ pd.set_option("display.max_rows", 50)
 pd.set_option("display.max_colwidth", None)
 pd.options.display.float_format = "{:.2f}".format
 
-basedir = Path(os.environ['BLABLACAR'])
-datadir = basedir / "output_data"
-scrape_datadir = datadir / 'scraper' / 'output'
-thumb_datadir = r"C:\Users\u82929\thumbnails"
-parser_dir = basedir / "git_" / "thumbparser"
+basedir = Path().resolve()
+scrape_datadir = basedir / 'scraper' / 'output'
+thumb_datadir = basedir / "stored_thumbnails"
+parser_dir = basedir / "thumbparser"
 parsed_trips = scrape_datadir / 'parsed_trips'
 
 # %%
@@ -123,6 +124,13 @@ class ThumbnailParser:
                 except FileNotFoundError:
                     create_blacklist(parser_dir, "blacklist.pkl", row["ID"])
 
+        except KeyboardInterrupt:
+            print('Interrupted')
+            try:
+                sys.exit(0)
+            except SystemExit:
+                os._exit(0)
+        
         except:
             pass
 
@@ -131,6 +139,7 @@ class ThumbnailParser:
         Filters old thumbnails and parses new ones.
         """
         for file in self.files:
+            print(f"[PARSING THUMBNAILS FOR DATE]: {str(file.stem)}")
             thumbs = [t[:-5] for t in os.listdir(thumb_datadir) if "jpeg" in t]
             self.read_data(file=file)
             for type in self.utype:
@@ -143,18 +152,22 @@ class ThumbnailParser:
                         self.outdata = self.outdata.loc[~self.outdata["ID"].isin(blacklist)]
                     except:
                         pass
-                    self.outdata.progress_apply(lambda row: self.parser(row), axis=1)
+                    self.outdata.apply(lambda row: self.parser(row), axis=1)
                 except KeyError:
                     print(f"No new thumbnails for day {str(file.name)}")
                     continue
 # %%
 if __name__ == "__main__":
-    filesload = [x for x in os.listdir(parsed_trips) if "trip_results" in str(x)]
-    for file in filesload:
+    def parse_instance(file):
         instance = ThumbnailParser(
             files=parsed_trips / file, 
             utype=["ratings", "passengers", "drivers"],
             output=thumb_datadir
         )
         instance.parse_trips()
+        
+    n_jobs = joblib.cpu_count()
+    filesload = [x for x in os.listdir(parsed_trips) if "trip_results" in str(x)]
+    p = Parallel(n_jobs=n_jobs)
+    p(delayed(parse_instance)(file=file) for file in filesload)    
 # %%
