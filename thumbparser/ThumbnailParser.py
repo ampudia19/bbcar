@@ -22,7 +22,7 @@ basedir = Path(os.environ['BLABLACAR'])
 datadir = basedir / "output_data"
 scrape_datadir = datadir / 'scraper' / 'output'
 thumb_datadir = r"C:\Users\u82929\thumbnails"
-parser_dir = basedir / "git_scripts" / "thumbparser"
+parser_dir = basedir / "git_" / "thumbparser"
 parsed_trips = scrape_datadir / 'parsed_trips'
 
 # %%
@@ -91,7 +91,7 @@ class ThumbnailParser:
         self.ratings_df = self.data[["num_id", "driver_id", "ratings"]]
         self.ratings_df = self.ratings_df.explode("ratings")
         self.ratings_df.dropna(subset=["ratings"], inplace=True)
-        self.ratings_df.drop_duplicates(subset=["driver_id"], keep="last", inplace=True)
+        self.ratings_df.drop_duplicates(subset=["driver_id", "ratings"], keep="last", inplace=True)
         self.json_ratings = pd.json_normalize(self.ratings_df.ratings)
         self.ratings_df = self.json_ratings[
             ["sender_uuid", "sender_display_name", "sender_profil_picture"]
