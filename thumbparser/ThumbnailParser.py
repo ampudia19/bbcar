@@ -92,7 +92,7 @@ class ThumbnailParser:
         self.ratings_df = self.ratings_df.explode("ratings")
         self.ratings_df.dropna(subset=["ratings"], inplace=True)
         self.json_ratings = pd.json_normalize(self.ratings_df.ratings)
-        self.ratings_df.drop_duplicates(subset=["driver_id", "sender_uuid"], keep="last", inplace=True)
+        self.json_ratings.drop_duplicates(subset="sender_uuid", keep="last", inplace=True)
         self.ratings_df = self.json_ratings[
             ["sender_uuid", "sender_display_name", "sender_profil_picture"]
         ]
