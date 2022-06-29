@@ -22,7 +22,7 @@ pd.options.display.float_format = "{:.2f}".format
 
 basedir = Path().resolve()
 scrape_datadir = basedir / 'scraper' / 'output'
-thumb_datadir = basedir / "stored_thumbnails"
+thumb_datadir = basedir.parents[0] / "scratch" / "thumbnails"
 parser_dir = basedir / "thumbparser"
 parsed_trips = scrape_datadir / 'parsed_trips'
 
@@ -89,17 +89,20 @@ class ThumbnailParser:
         """
         Creates ratings dataset, normalizes ID label and explodes JSON.
         """
-        self.ratings_df = self.data[["num_id", "driver_id", "ratings"]]
-        self.ratings_df = self.ratings_df.explode("ratings")
-        self.ratings_df.dropna(subset=["ratings"], inplace=True)
-        self.json_ratings = pd.json_normalize(self.ratings_df.ratings)
+        self.ratings_large = self.data[["num_id", "driver_id", "ratings"]]
+        self.ratings_large = self.ratings_large.explode("ratings")
+        self.ratings_large.dropna(subset=["ratings"], inplace=True)
+        self.json_ratings = pd.json_normalize(self.ratings_large.ratings)
         self.json_ratings.drop_duplicates(subset="sender_uuid", keep="last", inplace=True)
+        self.json_ratings = self.json_ratings.copy()
         self.ratings_df = self.json_ratings[
             ["sender_uuid", "sender_display_name", "sender_profil_picture"]
         ]
+        self.ratings_df = self.ratings_df.copy()
         self.ratings_df.drop_duplicates(subset=["sender_uuid"], keep="last", inplace=True)
         self.ratings_df.rename(columns={"sender_uuid": "ID", "sender_profil_picture": "thumbnail"}, inplace=True)
         self.types["ratings"]["data"] = self.ratings_df
+
 
     def read_data(self, file: Path):
         """
@@ -171,3 +174,4 @@ if __name__ == "__main__":
     p = Parallel(n_jobs=n_jobs)
     p(delayed(parse_instance)(file=file) for file in filesload)    
 # %%
+
